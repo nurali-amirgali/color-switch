@@ -94,13 +94,24 @@ class movingWall:
             if (posX + (miniWidth+1)) > self.width:
                 extraWidth = (posX + (miniWidth+1)) - self.width
                 pygame.draw.rect(self.screen, color, (0, self.y, extraWidth, self.height))
+    
+    def collisionCheck(self, ballX, ballY, ballRadius):
+        if (ballY + ballRadius) > self.y and (ballY - ballRadius) < (self.y + self.height):
+            miniWidth = self.width/4
+            for i in range(len(self.colors)):
+                startX = (i * miniWidth + self.offset) % self.width
+                endX = startX + miniWidth
+                if (ballX + ballRadius) < endX and (ballX - ballRadius) > startX:
+                    return True, i
+        return False, -1
+            
 
 def jump():
     global ballVelocity
     ballVelocity = jumpForce
 
-smallRing = ring(WIDTH*0.8, HEIGHT/2, screen)
-smallWall = movingWall(HEIGHT/2, screen)
+smallRing = ring(WIDTH*0.6, HEIGHT*0.7, screen)
+smallWall = movingWall(HEIGHT*0.4, screen)
 running = True
 while running:
     dt = clock.tick(FPS) / 1000
@@ -118,6 +129,11 @@ while running:
     smallWall.offset += 50 * dt
     
     collision, colorIndex = smallRing.collisionCheck(WIDTH/2, ballY, ballRadius)
+    #if collision:
+       # if colorIndex != ballColor:
+            #running = False
+            
+    collision, colorIndex = smallWall.collisionCheck(WIDTH/2, ballY, ballRadius)
     if collision:
         if colorIndex != ballColor:
             running = False
