@@ -4,7 +4,7 @@ import math
 
 pygame.init()
 
-WIDTH, HEIGHT = 800, 600
+WIDTH, HEIGHT = 350, 600
 FPS = 60
 BG_COLOR = (0,0,0) #(40, 40, 40)
 
@@ -76,11 +76,31 @@ class ring:
                     return True, i
         return False, -1
 
+class movingWall:
+    def __init__(self, y, screen):
+        self.screen = screen
+        self.width = screen.get_width()
+        self.y = y
+        self.x = 0
+        self.colors = colors
+        self.offset = 0
+        self.height = 18
+    
+    def render(self):
+        miniWidth = self.width/4
+        for i, color in enumerate(self.colors):
+            posX = (i * miniWidth + self.offset) % self.width
+            pygame.draw.rect(self.screen, color, (posX, self.y, miniWidth+1, self.height))
+            if (posX + (miniWidth+1)) > self.width:
+                extraWidth = (posX + (miniWidth+1)) - self.width
+                pygame.draw.rect(self.screen, color, (0, self.y, extraWidth, self.height))
+
 def jump():
     global ballVelocity
     ballVelocity = jumpForce
 
-smallRing = ring(WIDTH/2, HEIGHT/2, screen)
+smallRing = ring(WIDTH*0.8, HEIGHT/2, screen)
+smallWall = movingWall(HEIGHT/2, screen)
 running = True
 while running:
     dt = clock.tick(FPS) / 1000
@@ -93,10 +113,9 @@ while running:
                 jump()
                 
     ballY -= ballVelocity * dt
-    #_, mouseY = pygame.mouse.get_pos()
-    #ballY = mouseY
     ballVelocity = max(ballVelocity + gravity * dt, terminalVelocity)
     smallRing.rotation += 130 * dt
+    smallWall.offset += 50 * dt
     
     collision, colorIndex = smallRing.collisionCheck(WIDTH/2, ballY, ballRadius)
     if collision:
@@ -106,6 +125,7 @@ while running:
     screen.fill(BG_COLOR)
     
     smallRing.render()
+    smallWall.render()
     pygame.draw.circle(screen, ballColors[ballColor], (WIDTH/2, ballY), ballRadius)
 
     pygame.display.flip()
