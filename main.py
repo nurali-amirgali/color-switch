@@ -8,6 +8,15 @@ WIDTH, HEIGHT = 800, 600
 FPS = 60
 BG_COLOR = (0,0,0) #(40, 40, 40)
 
+PURPLE = 0
+PINK = 1
+CYAN = 2
+YELLOW = 3
+WHITE = 4
+
+colors=[(140, 19, 251), (255, 0, 128), (53, 226, 242), (246, 223, 14)]
+ballColors=[(140, 19, 251), (255, 0, 128), (53, 226, 242), (246, 223, 14), (255,255,255)]
+
 screen = pygame.display.set_mode((WIDTH, HEIGHT), vsync=True)
 pygame.display.set_caption("color switch")
 clock = pygame.time.Clock()
@@ -16,10 +25,12 @@ terminalVelocity = -1500
 ballVelocity = 0
 jumpForce = 250
 gravity = -600
+ballRadius = 10
+ballColor = 0
 ballY = HEIGHT/2
 
 class ring:
-    def __init__(self, x, y, screen, radius=50, width=18, rotation=0, resolution=200, colors=[(140, 19, 251), (255, 0, 128), (53, 226, 242), (246, 223, 14)]):
+    def __init__(self, x, y, screen, radius=50, width=18, rotation=0, resolution=200):
         self.x = x
         self.y = y
         self.radius = radius
@@ -43,6 +54,27 @@ class ring:
                 points.append((x,y))
             pygame.draw.polygon(self.screen, color, points)
         pygame.draw.circle(self.screen, (0,0,0), (self.x, self.y), self.radius)
+        
+    def collisionCheck(self, ballX, ballY, ballRadius):
+        distance = math.dist((ballX, ballY), (self.x, self.y))
+        if distance > (self.radius - ballRadius) and distance < (self.radius + self.width + ballRadius):
+            dx = ballX - self.x
+            dy = ballY - self.y
+            
+            radians = math.atan2(dy, dx)
+            degrees = math.degrees(radians)
+            
+            if degrees < 0:
+                degrees += 360
+            
+            segmentSize = 360/len(self.colors)
+            for i in range(len(self.colors)):
+                startDir = self.rotation + i * segmentSize
+                endDir = startDir + segmentSize
+                
+                if (degrees - startDir) % 360 <= (endDir - startDir) % 360:
+                    return True, i
+        return False, -1
 
 def jump():
     global ballVelocity
@@ -61,12 +93,20 @@ while running:
                 jump()
                 
     ballY -= ballVelocity * dt
+    #_, mouseY = pygame.mouse.get_pos()
+    #ballY = mouseY
     ballVelocity = max(ballVelocity + gravity * dt, terminalVelocity)
+    smallRing.rotation += 130 * dt
+    
+    collision, colorIndex = smallRing.collisionCheck(WIDTH/2, ballY, ballRadius)
+    if collision:
+        if colorIndex != ballColor:
+            running = False
 
     screen.fill(BG_COLOR)
     
     smallRing.render()
-    pygame.draw.circle(screen, (255,255,255), (WIDTH/2, ballY), 10)
+    pygame.draw.circle(screen, ballColors[ballColor], (WIDTH/2, ballY), ballRadius)
 
     pygame.display.flip()
 
