@@ -82,20 +82,30 @@ class movingWall:
         self.width = screen.get_width()
         self.y = y
         self.x = 0
+        self.pivotX = self.width/2
         self.colors = colors
         self.offset = 0
         self.height = 18
+        self.rotation = 45
     
     def render(self):
+        self.width = math.sin(math.radians(90)) * (screen.get_width()/math.sin(math.radians(self.rotation))) + self.height
+        wallSurface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        
         miniWidth = self.width/4
         for i, color in enumerate(self.colors):
             posX = (i * miniWidth + self.offset) % self.width
-            pygame.draw.rect(self.screen, color, (posX, self.y, miniWidth+1, self.height))
+            pygame.draw.rect(wallSurface, color, (posX, 0, miniWidth+1, self.height))
             if (posX + (miniWidth+1)) > self.width:
                 extraWidth = (posX + (miniWidth+1)) - self.width
-                pygame.draw.rect(self.screen, color, (0, self.y, extraWidth, self.height))
+                pygame.draw.rect(wallSurface, color, (0, 0, extraWidth, self.height))
+        
+        rotatedSurface = pygame.transform.rotate(wallSurface, self.rotation)
+        rotatedRect = rotatedSurface.get_rect(center=(self.pivotX, self.y + (self.height/2)))
+        
+        self.screen.blit(rotatedSurface, rotatedRect)
     
-    def collisionCheck(self, ballX, ballY, ballRadius):
+    def collisionCheck(self, ballX, ballY, ballRadius):        
         if (ballY + ballRadius) > self.y and (ballY - ballRadius) < (self.y + self.height):
             miniWidth = self.width/4
             for i in range(len(self.colors)):
