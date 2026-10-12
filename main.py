@@ -77,17 +77,18 @@ class ring:
         return False, -1
 
 class movingWall:
-    def __init__(self, y, screen):
+    def __init__(self, y, screen, rotation=0, reverse=False):
         self.screen = screen
         self.width = screen.get_width()
         self.y = y
         self.x = 0
-        self.colors = colors
+        self.colors = colors[::-1] if reverse else colors
         self.offset = 0
         self.height = 18
-        self.rotation = 15
+        self.rotation = rotation
         self.pivotX = self.width/2
         self.pivotY = self.y + (self.height/2)
+        self.reverse = reverse
     
     def render(self):
         self.width = math.sin(math.radians(90)) * (screen.get_width()/math.sin(math.radians(90-self.rotation))) + self.height
@@ -134,7 +135,8 @@ def jump():
     ballVelocity = jumpForce
 
 smallRing = ring(WIDTH*0.6, HEIGHT*0.7, screen)
-smallWall = movingWall(HEIGHT*0.4, screen)
+smallWall = movingWall(HEIGHT*0.4, screen, rotation=15)
+smallWall2 = movingWall(HEIGHT*0.4, screen, rotation=-15, reverse=True)
 running = True
 while running:
     dt = clock.tick(FPS) / 1000
@@ -150,6 +152,7 @@ while running:
     ballVelocity = max(ballVelocity + gravity * dt, terminalVelocity)
     smallRing.rotation += 130 * dt
     smallWall.offset += 50 * dt
+    smallWall2.offset = -smallWall.offset
     
     collision, colorIndex = smallRing.collisionCheck(WIDTH/2, ballY, ballRadius)
     #if collision:
@@ -165,6 +168,7 @@ while running:
     
     smallRing.render()
     smallWall.render()
+    smallWall2.render()
     pygame.draw.circle(screen, ballColors[ballColor], (WIDTH/2, ballY), ballRadius)
 
     pygame.display.flip()
