@@ -82,14 +82,16 @@ class movingWall:
         self.width = screen.get_width()
         self.y = y
         self.x = 0
-        self.pivotX = self.width/2
         self.colors = colors
         self.offset = 0
         self.height = 18
-        self.rotation = 45
+        self.rotation = 15
+        self.pivotX = self.width/2
+        self.pivotY = self.y + (self.height/2)
     
     def render(self):
-        self.width = math.sin(math.radians(90)) * (screen.get_width()/math.sin(math.radians(self.rotation))) + self.height
+        self.width = math.sin(math.radians(90)) * (screen.get_width()/math.sin(math.radians(90-self.rotation))) + self.height
+        #self.pivotX = self.width/2
         wallSurface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         
         miniWidth = self.width/4
@@ -101,17 +103,28 @@ class movingWall:
                 pygame.draw.rect(wallSurface, color, (0, 0, extraWidth, self.height))
         
         rotatedSurface = pygame.transform.rotate(wallSurface, self.rotation)
-        rotatedRect = rotatedSurface.get_rect(center=(self.pivotX, self.y + (self.height/2)))
+        rotatedRect = rotatedSurface.get_rect(center=(self.pivotX, self.pivotY))
         
         self.screen.blit(rotatedSurface, rotatedRect)
     
-    def collisionCheck(self, ballX, ballY, ballRadius):        
-        if (ballY + ballRadius) > self.y and (ballY - ballRadius) < (self.y + self.height):
+    def collisionCheck(self, ballX, ballY, ballRadius):
+        dx = ballX - self.pivotX
+        dy = ballY - self.pivotY
+        
+        angle = -math.radians(self.rotation)
+        
+        newX = dx * math.cos(angle) - dy * math.sin(angle)
+        newY = dx * math.sin(angle) + dy * math.cos(angle)
+        
+        localX = newX + (self.width/2)
+        localY = newY + (self.height/2)
+        
+        if (localY + ballRadius) > 0 and (localY - ballRadius) < self.height:
             miniWidth = self.width/4
             for i in range(len(self.colors)):
                 startX = (i * miniWidth + self.offset) % self.width
                 endX = startX + miniWidth
-                if (ballX + ballRadius) < endX and (ballX - ballRadius) > startX:
+                if (localX + ballRadius) > startX and (localX - ballRadius) < endX:
                     return True, i
         return False, -1
             
