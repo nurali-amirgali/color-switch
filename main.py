@@ -29,6 +29,15 @@ ballRadius = 10
 ballColor = 0
 ballY = HEIGHT/2
 
+def get_point(start, direction, length):
+    x, y = start
+    direction = math.radians(direction)
+
+    new_x = x + math.cos(direction) * length
+    new_y = y + math.sin(direction) * length
+
+    return (new_x, new_y)
+
 class ring:
     def __init__(self, x, y, screen, radius=50, width=18, rotation=0, resolution=200):
         self.x = x
@@ -129,14 +138,55 @@ class movingWall:
                     return True, i
         return False, -1
             
+class spinningSpike:
+    def __init__(self, x, y, screen, width = 20, length = 40, rotation = 0, sides = 4, resolution = 60):
+        self.x = x
+        self.y = y
+        self.rotation = rotation
+        self.sides = sides
+        self.colors = colors
+        self.screen = screen
+        self.width = width
+        self.length = length
+        self.resolution = resolution
+    
+    def render(self):
+        for i, color in enumerate(self.colors):
+            dir = (i * 90) + self.rotation
+            points = [(self.x, self.y)]
+            
+            distance = math.hypot(self.width, self.width) / 2
+            
+            point1 = get_point(points[0], dir + 45, distance)
+            point2 = get_point(points[0], dir - 45, distance)
+            
+            point3 = get_point(point1, dir, self.length)
+            point4 = get_point(point2, dir, self.length)
+            points.append(point1)
+            points.append(point3)
+            
+            circlePoint = get_point(points[0], dir, (self.width/2) + self.length)
+            for step in range(self.resolution + 1):
+                currentDir = (dir-90) + step * (180/self.resolution)
+                dirRadians = math.radians(currentDir)
+                x = circlePoint[0] + (self.width/2) * math.cos(dirRadians)
+                y = circlePoint[1] + (self.width/2) * math.sin(dirRadians)
+                
+                points.append((x,y))
+            
+            points.append(point4)
+            points.append(point2)
+            
+            pygame.draw.polygon(self.screen, color, points)
 
 def jump():
     global ballVelocity
     ballVelocity = jumpForce
 
-smallRing = ring(WIDTH*0.6, HEIGHT*0.7, screen)
-smallWall = movingWall(HEIGHT*0.4, screen, rotation=15)
-smallWall2 = movingWall(HEIGHT*0.4, screen, rotation=-15, reverse=True)
+#smallRing = ring(WIDTH*0.6, HEIGHT*0.7, screen)
+#smallWall = movingWall(HEIGHT*0.4, screen, rotation=15)
+#smallWall2 = movingWall(HEIGHT*0.4, screen, rotation=-15, reverse=True)
+spike = spinningSpike(WIDTH/2, HEIGHT/2, screen, rotation=45)
 running = True
 while running:
     dt = clock.tick(FPS) / 1000
@@ -150,25 +200,27 @@ while running:
                 
     ballY -= ballVelocity * dt
     ballVelocity = max(ballVelocity + gravity * dt, terminalVelocity)
-    smallRing.rotation += 130 * dt
-    smallWall.offset += 50 * dt
-    smallWall2.offset = -smallWall.offset
+    #smallRing.rotation += 130 * dt
+    #smallWall.offset += 50 * dt
+    #smallWall2.offset = -smallWall.offset
     
-    collision, colorIndex = smallRing.collisionCheck(WIDTH/2, ballY, ballRadius)
+    #collision, colorIndex = smallRing.collisionCheck(WIDTH/2, ballY, ballRadius)
     #if collision:
        # if colorIndex != ballColor:
             #running = False
             
-    collision, colorIndex = smallWall.collisionCheck(WIDTH/2, ballY, ballRadius)
-    if collision:
-        if colorIndex != ballColor:
-            running = False
+    #collision, colorIndex = smallWall.collisionCheck(WIDTH/2, ballY, ballRadius)
+    #if collision:
+    #    if colorIndex != ballColor:
+    #        running = False
 
     screen.fill(BG_COLOR)
     
-    smallRing.render()
-    smallWall.render()
-    smallWall2.render()
+    spike.render()
+    #spike.rotation += 80 * dt
+    #smallRing.render()
+    #smallWall.render()
+    #smallWall2.render()
     pygame.draw.circle(screen, ballColors[ballColor], (WIDTH/2, ballY), ballRadius)
 
     pygame.display.flip()
