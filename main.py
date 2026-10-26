@@ -38,6 +38,27 @@ def get_point(start, direction, length):
 
     return (new_x, new_y)
 
+def isCircleColliding(pointA, radiusA, pointB, radiusB):
+    distance = math.dist(pointA, pointB)
+    distance -= radiusA - radiusB
+    return distance <= 0
+
+def isRectCollidingCircle(rectPos, rectWidth, rectHeight, rectRot, circlePos, circleRadius):
+    tetha = math.radians(rectRot)
+    
+    dx = circlePos[0] - rectPos[0]
+    dy = circlePos[1] - rectPos[1]
+    
+    x = dx * math.cos(tetha) + dy * math.sin(tetha)
+    y = -dx * math.sin(tetha) + dy * math.cos(tetha)
+    
+    closestX = max(-rectWidth/2, min(x, rectWidth/2))
+    closestY = max(-rectHeight/2, min(y, rectHeight/2))
+    
+    distance = math.dist((x, y), (closestX, closestY))
+    
+    return distance <= circleRadius
+
 class ring:
     def __init__(self, x, y, screen, radius=50, width=18, rotation=0, resolution=200):
         self.x = x
@@ -178,6 +199,24 @@ class spinningSpike:
             points.append(point2)
             
             pygame.draw.polygon(self.screen, color, points)
+    
+    def collisionCheck(self, ballX, ballY, ballRadius):
+        distance = math.dist((ballX, ballY), (self.x, self.y))
+        distance -= (self.width/2) - self.length - ballRadius
+        checkResolution = 10
+        if distance:
+            for i, color in enumerate(self.colors):
+                dir = (i * 90) + self.rotation
+                points = []
+                for j in range(checkResolution):
+                    totalLength = self.length + (self.width/2)
+                    currentLength = (totalLength/checkResolution) * j
+                    points.append(get_point((self.x, self.y), dir, currentLength))
+                    pygame.draw.circle(self.screen, (255,255,255),points[-1], (self.width/2))
+                for point in points:
+                    if isCircleColliding(point, (self.width/2), (ballX, ballY), ballRadius):
+                        return True, color
+        return False, -1
 
 def jump():
     global ballVelocity
@@ -200,6 +239,7 @@ while running:
                 
     ballY -= ballVelocity * dt
     ballVelocity = max(ballVelocity + gravity * dt, terminalVelocity)
+    ballY = pygame.mouse.get_pos()[1]
     #smallRing.rotation += 130 * dt
     #smallWall.offset += 50 * dt
     #smallWall2.offset = -smallWall.offset
@@ -217,11 +257,18 @@ while running:
     screen.fill(BG_COLOR)
     
     spike.render()
-    #spike.rotation += 80 * dt
+    spike.rotation += 80 * dt
     #smallRing.render()
     #smallWall.render()
     #smallWall2.render()
     pygame.draw.circle(screen, ballColors[ballColor], (WIDTH/2, ballY), ballRadius)
+    
+    collision, colorIndex = spike.collisionCheck(WIDTH/2, ballY, ballRadius)
+    if collision:
+        print(colorIndex)
+        if colorIndex != ballColor:
+            pass
+            #running = False
 
     pygame.display.flip()
 
