@@ -29,7 +29,7 @@ ballRadius = 10
 ballColor = 0
 ballY = HEIGHT/2
 
-def get_point(start, direction, length):
+def getPoint(start, direction, length):
     x, y = start
     direction = math.radians(direction)
 
@@ -40,8 +40,7 @@ def get_point(start, direction, length):
 
 def isCircleColliding(pointA, radiusA, pointB, radiusB):
     distance = math.dist(pointA, pointB)
-    distance -= radiusA - radiusB
-    return distance <= 0
+    return distance <= radiusA + radiusB
 
 def isRectCollidingCircle(rectPos, rectWidth, rectHeight, rectRot, circlePos, circleRadius):
     tetha = math.radians(rectRot)
@@ -178,15 +177,15 @@ class spinningSpike:
             
             distance = math.hypot(self.width, self.width) / 2
             
-            point1 = get_point(points[0], dir + 45, distance)
-            point2 = get_point(points[0], dir - 45, distance)
+            point1 = getPoint(points[0], dir + 45, distance)
+            point2 = getPoint(points[0], dir - 45, distance)
             
-            point3 = get_point(point1, dir, self.length)
-            point4 = get_point(point2, dir, self.length)
+            point3 = getPoint(point1, dir, self.length)
+            point4 = getPoint(point2, dir, self.length)
             points.append(point1)
             points.append(point3)
             
-            circlePoint = get_point(points[0], dir, (self.width/2) + self.length)
+            circlePoint = getPoint(points[0], dir, (self.width/2) + self.length)
             for step in range(self.resolution + 1):
                 currentDir = (dir-90) + step * (180/self.resolution)
                 dirRadians = math.radians(currentDir)
@@ -201,21 +200,17 @@ class spinningSpike:
             pygame.draw.polygon(self.screen, color, points)
     
     def collisionCheck(self, ballX, ballY, ballRadius):
-        distance = math.dist((ballX, ballY), (self.x, self.y))
-        distance -= (self.width/2) - self.length - ballRadius
-        checkResolution = 10
-        if distance:
-            for i, color in enumerate(self.colors):
+        if isCircleColliding((self.x, self.y), self.length + self.width, (ballX, ballY), ballRadius):
+            for i in range(len(self.colors)):
                 dir = (i * 90) + self.rotation
-                points = []
-                for j in range(checkResolution):
-                    totalLength = self.length + (self.width/2)
-                    currentLength = (totalLength/checkResolution) * j
-                    points.append(get_point((self.x, self.y), dir, currentLength))
-                    pygame.draw.circle(self.screen, (255,255,255),points[-1], (self.width/2))
-                for point in points:
-                    if isCircleColliding(point, (self.width/2), (ballX, ballY), ballRadius):
-                        return True, color
+                rectWidth = self.length + (self.width/2)
+                rectCenter = getPoint((self.x, self.y), dir, rectWidth/2)
+                endCirclePos = getPoint((self.x, self.y), dir, rectWidth)
+                if isRectCollidingCircle(rectCenter, rectWidth, self.width, dir, (ballX, ballY), ballRadius):
+                    return True, i
+                if isCircleColliding(endCirclePos, self.width/2, (ballX, ballY), ballRadius):
+                    return True, i
+                
         return False, -1
 
 def jump():
@@ -225,7 +220,7 @@ def jump():
 #smallRing = ring(WIDTH*0.6, HEIGHT*0.7, screen)
 #smallWall = movingWall(HEIGHT*0.4, screen, rotation=15)
 #smallWall2 = movingWall(HEIGHT*0.4, screen, rotation=-15, reverse=True)
-spike = spinningSpike(WIDTH/2, HEIGHT/2, screen, rotation=45)
+spike = spinningSpike(WIDTH/2+30, HEIGHT/2 - 60, screen, rotation=45)
 running = True
 while running:
     dt = clock.tick(FPS) / 1000
@@ -239,7 +234,7 @@ while running:
                 
     ballY -= ballVelocity * dt
     ballVelocity = max(ballVelocity + gravity * dt, terminalVelocity)
-    ballY = pygame.mouse.get_pos()[1]
+    #ballY = pygame.mouse.get_pos()[1]
     #smallRing.rotation += 130 * dt
     #smallWall.offset += 50 * dt
     #smallWall2.offset = -smallWall.offset
@@ -265,10 +260,8 @@ while running:
     
     collision, colorIndex = spike.collisionCheck(WIDTH/2, ballY, ballRadius)
     if collision:
-        print(colorIndex)
         if colorIndex != ballColor:
-            pass
-            #running = False
+            running = False
 
     pygame.display.flip()
 
