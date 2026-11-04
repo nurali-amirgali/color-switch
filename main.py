@@ -14,20 +14,17 @@ CYAN = 2
 YELLOW = 3
 WHITE = 4
 
+RING = 0
+SPIKE = 1
+WALL = 2
+COLOR_ORB = 3
+
 colors=[(140, 19, 251), (255, 0, 128), (53, 226, 242), (246, 223, 14)]
 ballColors=[(140, 19, 251), (255, 0, 128), (53, 226, 242), (246, 223, 14), (255,255,255)]
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT), vsync=True)
 pygame.display.set_caption("color switch")
 clock = pygame.time.Clock()
-
-terminalVelocity = -1500
-ballVelocity = 0
-jumpForce = 250
-gravity = -600
-ballRadius = 10
-ballColor = 0
-ballY = HEIGHT/2
 
 def getPoint(start, direction, length):
     x, y = start
@@ -213,14 +210,55 @@ class spinningSpike:
                 
         return False, -1
 
+class colorChangeOrb:
+    def __init__(self, x, y, radius, screen, resolution = 120):
+        self.x = x
+        self.y = y
+        self.radius = radius
+        self.colors = colors
+        self.resolution = resolution
+        self.screen = screen
+        self.rotation = 0
+    
+    def render(self):
+        segmentSize = 360/len(self.colors)
+        for i, color in enumerate(self.colors):
+            startDir = self.rotation + i * segmentSize
+            points = [(self.x, self.y)]
+            for step in range(self.resolution + 1):
+                dir = startDir + step * (segmentSize/self.resolution)
+                points.append(getPoint((self.x, self.y), dir, self.radius))
+            pygame.draw.polygon(self.screen, color, points)
+    
+    def collisionCheck(self, ballX, ballY, ballRadius):
+        return isCircleColliding((ballX, ballY), ballRadius, (self.x, self.y), self.radius)
+
 def jump():
     global ballVelocity
     ballVelocity = jumpForce
 
-#smallRing = ring(WIDTH*0.6, HEIGHT*0.7, screen)
-#smallWall = movingWall(HEIGHT*0.4, screen, rotation=15)
-#smallWall2 = movingWall(HEIGHT*0.4, screen, rotation=-15, reverse=True)
-spike = spinningSpike(WIDTH/2+30, HEIGHT/2 - 60, screen, rotation=45)
+activeObstacles = {}
+
+stiffness = 30
+damping = 10
+
+ballLimitY = 300
+cameraY = 0
+lastCameraY = 0
+targetCameraY = 0
+cameraVelocity = 0
+
+terminalVelocity = -1500
+jumpForce = 250
+gravity = -600
+
+ballVelocity = 0
+ballY = HEIGHT - ballLimitY
+ballRadius = 10
+ballColor = 0
+
+spike = spinningSpike(WIDTH/2 + 30, 10, screen)
+colorChange = colorChangeOrb(WIDTH/2, HEIGHT/2, 10, screen)
 running = True
 while running:
     dt = clock.tick(FPS) / 1000
@@ -233,35 +271,28 @@ while running:
                 jump()
                 
     ballY -= ballVelocity * dt
-    ballVelocity = max(ballVelocity + gravity * dt, terminalVelocity)
-    #ballY = pygame.mouse.get_pos()[1]
-    #smallRing.rotation += 130 * dt
-    #smallWall.offset += 50 * dt
-    #smallWall2.offset = -smallWall.offset
+    targetCameraY = max(targetCameraY, (HEIGHT - ballLimitY) - ballY)
     
-    #collision, colorIndex = smallRing.collisionCheck(WIDTH/2, ballY, ballRadius)
-    #if collision:
-       # if colorIndex != ballColor:
-            #running = False
-            
-    #collision, colorIndex = smallWall.collisionCheck(WIDTH/2, ballY, ballRadius)
+    delta = targetCameraY - cameraY
+    acceleration = (stiffness * delta) - (damping * cameraVelocity)
+    
+    cameraVelocity += acceleration * dt
+    cameraY += cameraVelocity * dt
+    
+    ballVelocity = max(ballVelocity + gravity * dt, terminalVelocity)
+    screen.fill(BG_COLOR)
+    
+    spike.y = 10 + cameraY
+    spike.render()
+    spike.rotation += 80 * dt
+    colorChange.y = HEIGHT/2 + cameraY
+    colorChange.render()
+    pygame.draw.circle(screen, ballColors[ballColor], (WIDTH/2, ballY + cameraY), ballRadius)
+    
+    #collision, colorIndex = spike.collisionCheck(WIDTH/2, ballY, ballRadius)
     #if collision:
     #    if colorIndex != ballColor:
     #        running = False
-
-    screen.fill(BG_COLOR)
-    
-    spike.render()
-    spike.rotation += 80 * dt
-    #smallRing.render()
-    #smallWall.render()
-    #smallWall2.render()
-    pygame.draw.circle(screen, ballColors[ballColor], (WIDTH/2, ballY), ballRadius)
-    
-    collision, colorIndex = spike.collisionCheck(WIDTH/2, ballY, ballRadius)
-    if collision:
-        if colorIndex != ballColor:
-            running = False
 
     pygame.display.flip()
 
